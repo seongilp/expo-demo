@@ -11,12 +11,21 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const RETRY_BACKOFF_MS = 800;
 const MAX_RETRY_COUNT = 1;
 
+// data.go.kr WAF는 기본 RN/okhttp User-Agent 요청을 "Request Blocked"(400 HTML)로 차단한다.
+// 브라우저 형태 UA를 명시해야 정상 XML 응답을 받는다.
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
 export const molitClient: AxiosInstance = axios.create({
   baseURL: env.MOLIT_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
   // XML 응답 — axios의 JSON 자동 파싱을 우회하고 원문 문자열 유지
   responseType: 'text',
   transformResponse: [(data: unknown): unknown => data],
+  headers: {
+    'User-Agent': BROWSER_USER_AGENT,
+    Accept: 'application/xml, text/xml, */*',
+  },
 });
 
 molitClient.interceptors.request.use((config) => {

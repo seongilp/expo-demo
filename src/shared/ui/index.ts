@@ -1,6 +1,5 @@
 export { Button } from './Button';
 export { Card } from './Card';
-export { Input } from './Input';
 export { AppText } from './Typography';
 export { Badge } from './Badge';
 export type { TBadgeVariant } from './Badge';
