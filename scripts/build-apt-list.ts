@@ -31,7 +31,7 @@ interface ITotalAptListResponse {
   };
 }
 
-const BASE_URL = 'https://apis.data.go.kr/1613000/AptListService3/getTotaAptList3';
+const BASE_URL = 'https://apis.data.go.kr/1613000/AptListService3/getTotalAptList3';
 const PAGE_SIZE = 1000;
 const DEFAULT_OUTPUT = path.resolve(__dirname, '../src/entities/apartment/data/apt-list.json');
 
@@ -76,8 +76,9 @@ const main = async (): Promise<void> => {
   while ((pageNo - 1) * PAGE_SIZE < totalCount) {
     const data = await fetchPage(serviceKey, pageNo);
     const header = data.response?.header;
-    if (header?.resultCode && header.resultCode !== '00') {
-      throw new Error(`API 오류 (${header.resultCode}): ${header.resultMsg ?? 'unknown'}`);
+    const code = header?.resultCode ? String(header.resultCode).trim() : undefined;
+    if (code && code !== '00' && code !== '000') {
+      throw new Error(`API 오류 (${code}): ${header?.resultMsg ?? 'unknown'}`);
     }
 
     const body = data.response?.body;
