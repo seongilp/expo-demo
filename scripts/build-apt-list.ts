@@ -21,15 +21,30 @@ interface ITotalAptListItem {
   bjdCode?: string | number;
 }
 
+// _type=json 응답은 body.items 가 배열 자체이고, XML 변환 시에는 items.item 중첩이 된다.
+// 두 형태를 모두 허용한다.
+type TAptItemsNode =
+  | ITotalAptListItem[]
+  | { item?: ITotalAptListItem | ITotalAptListItem[] };
+
 interface ITotalAptListResponse {
   response?: {
     header?: { resultCode?: string; resultMsg?: string };
     body?: {
-      items?: { item?: ITotalAptListItem | ITotalAptListItem[] };
+      items?: TAptItemsNode;
       totalCount?: number;
     };
   };
 }
+
+/** body.items(배열) 또는 body.items.item(객체/배열) 모두에서 item 배열을 추출 */
+const extractItems = (items: TAptItemsNode | undefined): ITotalAptListItem[] => {
+  if (!items) return [];
+  if (Array.isArray(items)) return items;
+  const inner = items.item;
+  if (!inner) return [];
+  return Array.isArray(inner) ? inner : [inner];
+};
 
 const BASE_URL = 'https://apis.data.go.kr/1613000/AptListService3/getTotalAptList3';
 const PAGE_SIZE = 1000;
@@ -83,9 +98,7 @@ const main = async (): Promise<void> => {
 
     const body = data.response?.body;
     totalCount = body?.totalCount ?? 0;
-    const rawItems = body?.items?.item;
-    const items = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
-    collected.push(...toRows(items));
+    collected.push(...toRows(extractItems(body?.items)));
 
     console.log(`  page ${pageNo}: 누적 ${collected.length}/${totalCount}`);
     pageNo += 1;
