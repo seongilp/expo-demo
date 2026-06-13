@@ -16,10 +16,9 @@ export {
   USER_PROPERTIES,
   setThemeModeProperty,
   setFavoriteBucketProperty,
-  setAdsConsentProperties,
   toFavoriteBucket,
 } from './user-properties';
-export type { TUserPropertyKey, TThemeModeProperty, IAdsConsentProperties } from './user-properties';
+export type { TUserPropertyKey, TThemeModeProperty } from './user-properties';
 export { recordFirstOpenAt, logActivationOnce } from './activation';
 export { useScreenTracking } from './hooks';
 export type { TAnalyticsParams, TAnalyticsParamValue, IAnalyticsAdapter } from './types';

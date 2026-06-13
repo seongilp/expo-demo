@@ -27,7 +27,6 @@ export const OPEN_SOURCE_LICENSES: readonly IOpenSourceLicense[] = [
   { name: 'react', license: 'MIT' },
   { name: 'react-native', license: 'MIT' },
   { name: 'react-native-gesture-handler', license: 'MIT' },
-  { name: 'react-native-google-mobile-ads', license: 'Apache-2.0' },
   { name: 'react-native-reanimated', license: 'MIT' },
   { name: 'react-native-safe-area-context', license: 'MIT' },
   { name: 'react-native-svg', license: 'MIT' },

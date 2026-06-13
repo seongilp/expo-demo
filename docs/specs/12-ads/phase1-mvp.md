@@ -2,10 +2,12 @@
 feature: ads
 phase: 1
 title: MVP - Adaptive Banner 광고 (배너 단일)
-status: in-progress
+status: cancelled
 created: 2026-06-13
 updated: 2026-06-13
 ---
+
+> **광고 미사용으로 취소됨** — 사용자가 수익화(AdMob 광고)를 사용하지 않기로 결정하여 광고 기능 및 관련 코드·설정·의존성이 전면 제거되었다. 본 스펙은 더 이상 구현 대상이 아니다.
 
 # Phase 1: MVP - Adaptive Banner 광고 (배너 단일)
 

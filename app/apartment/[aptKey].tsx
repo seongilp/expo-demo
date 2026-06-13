@@ -1,13 +1,11 @@
 // 단지 상세 (F-002~F-005/F-012 조합, screen-layouts.md §5) — Flow A 종착지.
 // 단일 FlashList(TransactionList) 헤더에 AptDetailSummary 위젯을 얹어 중첩 스크롤 회피.
 // 캐시 히트 시 즉시 렌더, 에러 시에도 로컬 정보(단지명/주소)와 ★ 토글은 항상 동작.
-// 하단 배너 1개 (BANNER_APT_DETAIL) — 미로드 collapse + contentPadding 보정.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Screen, ScreenHeader, AppText, EmptyState, SkeletonListItem } from '@/shared/ui';
-import { AdUnitIds } from '@/shared/config';
 import { toPyeongRounded, recentDealYms } from '@/shared/lib';
 import { tradeKeys } from '@/shared/api';
 import {
@@ -29,7 +27,6 @@ import {
 import { TSelectedAreaGroup } from '@/features/price-chart';
 import { FavoriteStarButton } from '@/features/favorites';
 import { useRecentSearchStore } from '@/features/search';
-import { AdBanner } from '@/features/ads';
 import { AptDetailSummary } from '@widgets/apt-detail-summary';
 
 const LOADING_SKELETON_COUNT = 5;
@@ -82,7 +79,6 @@ export default function ApartmentDetailScreen(): React.JSX.Element {
   const entryPoint = toEntryPoint(typeof entry === 'string' ? entry : undefined);
 
   const [selectedArea, setSelectedArea] = useState<TSelectedAreaGroup>(null);
-  const [bannerHeight, setBannerHeight] = useState(0);
 
   const { sections, loadState, meta, failedMonths, loadMore } = useTradeHistory(key);
   const addRecentSearch = useRecentSearchStore((state) => state.addRecentSearch);
@@ -252,12 +248,9 @@ export default function ApartmentDetailScreen(): React.JSX.Element {
           onLoadMore={loadMore}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
-          contentContainerStyle={{ paddingBottom: bannerHeight + 12 }}
+          contentContainerStyle={{ paddingBottom: 12 }}
         />
       </View>
-
-      {/* 화면당 배너 1개 — 체류 최장 화면 (주 수익원), 미로드 시 collapse */}
-      <AdBanner unitId={AdUnitIds.BANNER_APT_DETAIL} onHeightChange={setBannerHeight} />
     </Screen>
   );
 }

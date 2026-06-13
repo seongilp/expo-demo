@@ -9,9 +9,8 @@ import { useScreenTracking } from '@/shared/analytics';
 import { SettingsRow, ThemeSelector, CacheClearRow } from '@/features/settings';
 import { DATA_SOURCE_NOTICE_TEXT } from '@/features/trade-history';
 
-// 개인정보처리방침 — GitHub Pages 자동 호스팅 (spec policy.privacy_url=auto-github-pages).
-// 배포 단계(/store-deploy)에서 실제 게시 URL로 확정된다.
-const PRIVACY_POLICY_URL = 'https://zihado.github.io/jipgap-note-policy/privacy.html';
+// 개인정보처리방침 — GitHub Pages 호스팅 (seongilp/expo-demo, docs/ 폴더).
+const PRIVACY_POLICY_URL = 'https://seongilp.github.io/expo-demo/privacy/';
 
 const openPrivacyPolicy = async (): Promise<void> => {
   try {

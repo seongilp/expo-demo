@@ -13,7 +13,6 @@ import { QueryProvider, ThemeProvider } from '@core/providers';
 import { toastConfig, ErrorBoundary } from '@/shared/ui';
 import { lightTokens, darkTokens } from '@/shared/config';
 import { initAnalytics, recordFirstOpenAt } from '@/shared/analytics';
-import { initializeAdsWithConsent } from '@/features/ads';
 import '../global.css';
 
 export default function RootLayout(): React.JSX.Element {
@@ -27,7 +26,6 @@ export default function RootLayout(): React.JSX.Element {
     const initialize = async (): Promise<void> => {
       try {
         // Analytics first — collection toggle (IS_PROD) + Crashlytics 활성화.
-        // 이후 ads consent 시퀀스가 기록하는 user property가 유실되지 않는다.
         await initAnalytics();
         await recordFirstOpenAt();
       } catch (error) {
@@ -38,10 +36,6 @@ export default function RootLayout(): React.JSX.Element {
         // Analytics 준비 직후 앱 진입을 막지 않는다.
         setIsInitialized(true);
       }
-      // Ads consent 시퀀스(UMP → ATT → initialize)는 콜드 스타트를 막지 않도록
-      // fire-and-forget. 내부에 타임아웃 가드가 있어 네트워크 지연 시에도 ready 처리된다.
-      // (consent 모듈이 idempotent + 모든 단계 try/catch 보호)
-      void initializeAdsWithConsent();
     };
     void initialize();
   }, []);

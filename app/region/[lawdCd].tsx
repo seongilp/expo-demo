@@ -1,12 +1,11 @@
-// 지역 단지 리스트 (F-008, screen-layouts.md §4) — push 스크린 + 하단 배너 1개.
+// 지역 단지 리스트 (F-008, screen-layouts.md §4) — push 스크린.
 // 로딩=행 골격 스켈레톤(스피너 단독 금지) / 에러=재시도(캐시 있으면 hook이 우선 표시) /
-// 빈 상태=배너 정상 노출. 배너 높이는 contentPadding으로 보정 (콘텐츠 가림 0).
-import { useCallback, useEffect, useRef, useState } from 'react';
+// 빈 상태=빈 안내 노출.
+import { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FlashList, ListRenderItemInfo } from '@shopify/flash-list';
 import { Screen, ScreenHeader, AppText, EmptyState, SkeletonListItem } from '@/shared/ui';
-import { AdUnitIds } from '@/shared/config';
 import {
   EVENTS,
   logEvent,
@@ -21,7 +20,6 @@ import {
   IRegionAptListItem,
 } from '@/features/search';
 import { DataSourceNotice } from '@/features/trade-history';
-import { AdBanner } from '@/features/ads';
 
 const LOADING_SKELETON_COUNT = 8;
 
@@ -39,7 +37,6 @@ export default function RegionAptListScreen(): React.JSX.Element {
   useScreenTracking('region_apt_list');
   const router = useRouter();
   const { lawdCd, entry } = useLocalSearchParams<{ lawdCd: string; entry?: string }>();
-  const [bannerHeight, setBannerHeight] = useState(0);
 
   const code = typeof lawdCd === 'string' ? lawdCd : '';
   const region = isValidLawdCd(code) ? getRegionByCode(code) : null;
@@ -130,14 +127,11 @@ export default function RegionAptListScreen(): React.JSX.Element {
             ListFooterComponent={
               items.length > 0 ? <DataSourceNotice className="mx-5 my-3" /> : null
             }
-            contentContainerStyle={{ paddingBottom: bannerHeight + 12 }}
+            contentContainerStyle={{ paddingBottom: 12 }}
             showsVerticalScrollIndicator={false}
           />
         )}
       </View>
-
-      {/* 화면당 배너 1개 — 최하단 anchored, 미로드 시 collapse */}
-      <AdBanner unitId={AdUnitIds.BANNER_REGION_LIST} onHeightChange={setBannerHeight} />
     </Screen>
   );
 }
