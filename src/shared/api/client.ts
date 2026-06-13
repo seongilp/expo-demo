@@ -1,205 +1,96 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import * as SecureStore from 'expo-secure-store';
-import { env } from '@shared/config';
+// 국토부 공공 API 전용 Axios 클라이언트 (02-data-layer).
+// - base URL은 env.MOLIT_BASE_URL — 프록시 전환 시 env 교체만으로 대응 (R-1)
+// - timeout 10s + 재시도 1회(백오프 800ms) (R-3)
+// - serviceKey는 env 경유 주입, 로그에는 절대 노출하지 않는다 (마스킹)
+// - 인증 토큰 없음 (게스트 전용 앱 — 토큰 인터셉터 미구현이 정상)
+import axios, { AxiosError, AxiosInstance, isAxiosError } from 'axios';
+import { env } from '@/shared/config';
+import { EMolitErrorReason, MolitApiError, maskServiceKey } from './molit/errors';
 
-type TAuthFailureCallback = () => void;
+const REQUEST_TIMEOUT_MS = 10_000;
+const RETRY_BACKOFF_MS = 800;
+const MAX_RETRY_COUNT = 1;
 
-let onAuthFailure: TAuthFailureCallback | null = null;
-
-export const setAuthFailureCallback = (callback: TAuthFailureCallback): void => {
-  onAuthFailure = callback;
-};
-
-const TOKEN_KEYS = {
-  ACCESS_TOKEN: 'accessToken',
-  REFRESH_TOKEN: 'refreshToken',
-} as const;
-
-export const tokenManager = {
-  setAccessToken: async (token: string): Promise<void> => {
-    await SecureStore.setItemAsync(TOKEN_KEYS.ACCESS_TOKEN, token);
-  },
-
-  getAccessToken: async (): Promise<string | null> => {
-    return SecureStore.getItemAsync(TOKEN_KEYS.ACCESS_TOKEN);
-  },
-
-  setRefreshToken: async (token: string): Promise<void> => {
-    await SecureStore.setItemAsync(TOKEN_KEYS.REFRESH_TOKEN, token);
-  },
-
-  getRefreshToken: async (): Promise<string | null> => {
-    return SecureStore.getItemAsync(TOKEN_KEYS.REFRESH_TOKEN);
-  },
-
-  setTokens: async (accessToken: string, refreshToken: string): Promise<void> => {
-    await Promise.all([
-      SecureStore.setItemAsync(TOKEN_KEYS.ACCESS_TOKEN, accessToken),
-      SecureStore.setItemAsync(TOKEN_KEYS.REFRESH_TOKEN, refreshToken),
-    ]);
-  },
-
-  clearTokens: async (): Promise<void> => {
-    await Promise.all([
-      SecureStore.deleteItemAsync(TOKEN_KEYS.ACCESS_TOKEN),
-      SecureStore.deleteItemAsync(TOKEN_KEYS.REFRESH_TOKEN),
-    ]);
-  },
-
-  hasTokens: async (): Promise<boolean> => {
-    const accessToken = await SecureStore.getItemAsync(TOKEN_KEYS.ACCESS_TOKEN);
-    return !!accessToken;
-  },
-};
-
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
-
-const onRefreshed = (token: string): void => {
-  refreshSubscribers.forEach((callback) => callback(token));
-  refreshSubscribers = [];
-};
-
-const addRefreshSubscriber = (callback: (token: string) => void): void => {
-  refreshSubscribers.push(callback);
-};
-
-const PUBLIC_ENDPOINTS = ['/auth/login', '/auth/signup', '/auth/refresh'];
-
-const isPublicEndpoint = (url: string | undefined): boolean => {
-  if (!url) return false;
-  return PUBLIC_ENDPOINTS.some((endpoint) => url.includes(endpoint));
-};
-
-export const apiClient: AxiosInstance = axios.create({
-  baseURL: env.API_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+export const molitClient: AxiosInstance = axios.create({
+  baseURL: env.MOLIT_BASE_URL,
+  timeout: REQUEST_TIMEOUT_MS,
+  // XML 응답 — axios의 JSON 자동 파싱을 우회하고 원문 문자열 유지
+  responseType: 'text',
+  transformResponse: [(data: unknown): unknown => data],
 });
 
-apiClient.interceptors.request.use(
-  async (config) => {
-    if (!isPublicEndpoint(config.url)) {
-      const token = await tokenManager.getAccessToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+molitClient.interceptors.request.use((config) => {
+  if (__DEV__) {
+    const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
+    // serviceKey 마스킹 — 키가 로그에 남지 않도록 params는 출력하지 않는다
+    console.log('[molit] GET', maskServiceKey(url));
+  }
+  return config;
+});
 
-    if (__DEV__) {
-      console.log('[API Request]', config.method?.toUpperCase(), config.url);
-    }
-
-    return config;
-  },
-  (error) => {
-    console.error('[API Request Error]', error);
-    return Promise.reject(error);
-  },
-);
-
-apiClient.interceptors.response.use(
-  (response) => {
-    if (env.IS_DEV && env.DEBUG) {
-      console.log('[API Response]', response.status, response.config.url);
-    }
-    return response;
-  },
-  async (error: AxiosError) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status !== 401) {
-      console.error('[API Response Error]', {
-        status: error.response?.status,
-        url: error.config?.url,
-        message: error.message,
-      });
-    }
-
-    if (error.response?.status === 401 && originalRequest) {
-      if (isPublicEndpoint(originalRequest.url)) {
-        return Promise.reject(error);
-      }
-
-      if (originalRequest.url?.includes('/auth/refresh')) {
-        await tokenManager.clearTokens();
-        if (onAuthFailure) {
-          onAuthFailure();
-        }
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve) => {
-          addRefreshSubscriber((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(apiClient(originalRequest));
-          });
-        });
-      }
-
-      isRefreshing = true;
-
-      try {
-        const refreshToken = await tokenManager.getRefreshToken();
-
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        const response = await axios.post<{
-          success: boolean;
-          accessToken: string;
-          refreshToken: string;
-        }>(`${env.API_URL}/auth/refresh`, { refreshToken });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-        await tokenManager.setTokens(accessToken, newRefreshToken);
-        onRefreshed(accessToken);
-
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return apiClient(originalRequest);
-      } catch {
-        await tokenManager.clearTokens();
-        refreshSubscribers = [];
-
-        if (onAuthFailure) {
-          onAuthFailure();
-        }
-
-        return Promise.reject(new Error('Session expired'));
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    return Promise.reject(error);
-  },
-);
-
-export const api = {
-  get: <T>(url: string, config?: AxiosRequestConfig) => {
-    return apiClient.get<T>(url, config);
-  },
-
-  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) => {
-    return apiClient.post<T>(url, data, config);
-  },
-
-  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) => {
-    return apiClient.put<T>(url, data, config);
-  },
-
-  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) => {
-    return apiClient.patch<T>(url, data, config);
-  },
-
-  delete: <T>(url: string, config?: AxiosRequestConfig) => {
-    return apiClient.delete<T>(url, config);
-  },
+const isRetryable = (error: AxiosError): boolean => {
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') return true;
+  if (!error.response) return true; // 네트워크 단절
+  return error.response.status >= 500;
 };
 
-export default api;
+const toTransportError = (error: AxiosError): MolitApiError => {
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+    return new MolitApiError(EMolitErrorReason.TIMEOUT, '요청 시간이 초과되었습니다 (10s)');
+  }
+  if (!error.response) {
+    return new MolitApiError(
+      EMolitErrorReason.NETWORK,
+      `네트워크 요청에 실패했습니다: ${error.message}`,
+    );
+  }
+  return new MolitApiError(
+    EMolitErrorReason.SERVER,
+    `서버 오류 (HTTP ${error.response.status})`,
+    String(error.response.status),
+  );
+};
+
+const delay = (ms: number): Promise<void> =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+export interface IMolitGetParams {
+  readonly [key: string]: string | number;
+}
+
+/**
+ * 국토부 API GET — serviceKey 자동 주입 + 재시도 1회(백오프).
+ * 전송 계층 실패는 MolitApiError(network/timeout/server)로 표준화해 throw.
+ * @returns 응답 XML 원문 문자열 (파싱은 molit/parser 책임)
+ */
+export const molitGet = async (path: string, params: IMolitGetParams): Promise<string> => {
+  if (!env.MOLIT_API_KEY) {
+    throw new MolitApiError(
+      EMolitErrorReason.INVALID_KEY,
+      'EXPO_PUBLIC_MOLIT_API_KEY가 설정되지 않았습니다 (목 모드는 EXPO_PUBLIC_USE_MOCK=true)',
+    );
+  }
+
+  const requestParams = { ...params, serviceKey: env.MOLIT_API_KEY };
+
+  let lastError: MolitApiError | null = null;
+  for (let attempt = 0; attempt <= MAX_RETRY_COUNT; attempt += 1) {
+    try {
+      const response = await molitClient.get<string>(path, { params: requestParams });
+      return response.data;
+    } catch (error) {
+      if (!isAxiosError(error)) {
+        throw new MolitApiError(
+          EMolitErrorReason.UNKNOWN,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+      lastError = toTransportError(error);
+      const shouldRetry = attempt < MAX_RETRY_COUNT && isRetryable(error);
+      if (!shouldRetry) break;
+      await delay(RETRY_BACKOFF_MS * (attempt + 1));
+    }
+  }
+
+  throw lastError ?? new MolitApiError(EMolitErrorReason.UNKNOWN, '요청에 실패했습니다');
+};

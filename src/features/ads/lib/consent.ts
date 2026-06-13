@@ -8,7 +8,8 @@ import {
   getTrackingPermissionsAsync,
   requestTrackingPermissionsAsync,
 } from 'expo-tracking-transparency';
-import { env } from '@shared/config';
+import { env, TEST_DEVICE_IDS } from '@/shared/config';
+import { setAdsConsentProperties } from '@/shared/analytics';
 
 /**
  * AdMob startup sequence. Runs UMP → ATT → SDK.initialize() in the order
@@ -41,6 +42,41 @@ let consentPromise: Promise<IAdConsentResult> | null = null;
 let isReady = false;
 const readyListeners: (() => void)[] = [];
 
+/** UMP/ATT 네트워크 지연 시 콜드 스타트가 무기한 차단되지 않도록 하는 상한 */
+const CONSENT_STEP_TIMEOUT_MS = 8000;
+
+/**
+ * Promise에 타임아웃 가드를 씌운다. 제한 시간 초과 시 `fallback`으로 resolve해
+ * 시퀀스가 멈추지 않도록 한다 (reject 아님 — 후속 단계를 계속 진행).
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      if (__DEV__) {
+        console.warn(`[ads] consent step timed out after ${ms}ms — continuing`);
+      }
+      resolve(fallback);
+    }, ms);
+    promise.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
 /** SDK 초기화 완료 여부 — 광고 컴포넌트 마운트 가드용 */
 export function isAdsReady(): boolean {
   return isReady;
@@ -57,6 +93,20 @@ export function onAdsReady(listener: () => void): () => void {
     const idx = readyListeners.indexOf(listener);
     if (idx >= 0) readyListeners.splice(idx, 1);
   };
+}
+
+/** UMP 상태 → user property 값 (kpis.md: obtained/required/not_required/unknown/error) */
+function toUmpStatusProperty(status: AdsConsentStatus): string {
+  switch (status) {
+    case AdsConsentStatus.OBTAINED:
+      return 'obtained';
+    case AdsConsentStatus.REQUIRED:
+      return 'required';
+    case AdsConsentStatus.NOT_REQUIRED:
+      return 'not_required';
+    default:
+      return 'unknown';
+  }
 }
 
 function markReady(): void {
@@ -94,18 +144,29 @@ export async function initializeAdsWithConsent(): Promise<IAdConsentResult> {
     let umpStatus: AdsConsentStatus = AdsConsentStatus.UNKNOWN;
     let canRequestAds = false;
     let attStatus: IAdConsentResult['attStatus'] = 'unavailable';
+    let umpFailed = false;
 
     // ── 1) UMP (GDPR) consent ────────────────────────────────────────────
     try {
-      const info = await AdsConsent.requestInfoUpdate();
-      umpStatus = info.status;
-      canRequestAds = info.canRequestAds ?? false;
-      if (info.isConsentFormAvailable && info.status === AdsConsentStatus.REQUIRED) {
-        const formResult = await AdsConsent.loadAndShowConsentFormIfRequired();
-        umpStatus = formResult.status;
-        canRequestAds = formResult.canRequestAds ?? canRequestAds;
+      // requestInfoUpdate가 네트워크 지연 시 콜드 스타트를 무기한 막지 않도록 타임아웃 가드.
+      const info = await withTimeout(
+        AdsConsent.requestInfoUpdate(),
+        CONSENT_STEP_TIMEOUT_MS,
+        null,
+      );
+      if (info === null) {
+        umpFailed = true;
+      } else {
+        umpStatus = info.status;
+        canRequestAds = info.canRequestAds ?? false;
+        if (info.isConsentFormAvailable && info.status === AdsConsentStatus.REQUIRED) {
+          const formResult = await AdsConsent.loadAndShowConsentFormIfRequired();
+          umpStatus = formResult.status;
+          canRequestAds = formResult.canRequestAds ?? canRequestAds;
+        }
       }
     } catch (error) {
+      umpFailed = true;
       if (__DEV__) {
         console.warn('[ads] UMP consent flow failed:', error);
       }
@@ -136,6 +197,9 @@ export async function initializeAdsWithConsent(): Promise<IAdConsentResult> {
         maxAdContentRating: MaxAdContentRating.PG,
         tagForChildDirectedTreatment: false,
         tagForUnderAgeOfConsent: false,
+        // 무효 트래픽 격리 — 실광고 ID 빌드(preview/내부 배포)의 개발/테스터 기기 등록.
+        // 에뮬레이터/시뮬레이터는 SDK가 자동 처리 (shared/config/ads.ts TEST_DEVICE_IDS).
+        testDeviceIdentifiers: TEST_DEVICE_IDS,
       });
     } catch {
       // setRequestConfiguration 실패해도 초기화는 진행
@@ -148,6 +212,13 @@ export async function initializeAdsWithConsent(): Promise<IAdConsentResult> {
         console.warn('[ads] mobileAds().initialize() failed:', err);
       }
     }
+
+    // ── 4) 동의 상태 user property 기록 — 동의 상태별 eCPM/노출률 코호트 분리
+    setAdsConsentProperties({
+      umpStatus: umpFailed ? 'error' : toUmpStatusProperty(umpStatus),
+      umpCanRequestAds: canRequestAds,
+      attStatus: attStatus === 'unavailable' ? 'not_applicable' : attStatus,
+    });
 
     markReady();
     return { umpStatus, canRequestAds, attStatus };

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { BaseToast, ErrorToast, BaseToastProps } from 'react-native-toast-message';
-import { Colors, Typography, Spacing } from '@shared/config';
+import { lightTokens } from '@/shared/config';
 
 export const toastConfig = {
   success: (props: BaseToastProps): React.JSX.Element => (
@@ -33,31 +33,31 @@ const styles = StyleSheet.create({
   base: {
     borderLeftWidth: 4,
     borderRadius: 8,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: lightTokens.surface,
   },
   success: {
-    borderLeftColor: Colors.status.success,
+    borderLeftColor: lightTokens.primary,
   },
   error: {
-    borderLeftColor: Colors.status.error,
+    borderLeftColor: lightTokens.danger,
   },
   info: {
-    borderLeftColor: Colors.status.info,
+    borderLeftColor: lightTokens.priceDown,
   },
   content: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: 16,
   },
   custom: {
-    padding: Spacing.lg,
+    padding: 16,
     minHeight: 60,
   },
   text1: {
-    fontSize: Typography.fontSizes.sm,
-    fontWeight: Typography.fontWeights.semibold,
-    color: Colors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    color: lightTokens.textPrimary,
   },
   text2: {
-    fontSize: Typography.fontSizes.xs,
-    color: Colors.text.secondary,
+    fontSize: 12,
+    color: lightTokens.textSecondary,
   },
 });

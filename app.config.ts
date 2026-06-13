@@ -1,5 +1,14 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
+// ATT(추적 권한) 문구 — infoPlist / react-native-google-mobile-ads plugin /
+// expo-tracking-transparency plugin 3곳에 반드시 동일하게 사용 (CLAUDE.md MANDATORY)
+const TRACKING_USAGE_DESCRIPTION =
+  '맞춤형 광고 제공을 위해 광고 식별자를 사용합니다.';
+
+// 위치 권한 문구 — "내 주변 시세"(F-007). 거부해도 전 기능 사용 가능 (optional)
+const LOCATION_USAGE_DESCRIPTION =
+  '내 주변 아파트 시세를 보여드리기 위해 현재 위치를 사용합니다. 위치는 시군구 확인 즉시 폐기되며 저장되지 않습니다.';
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const API_URL = process.env.API_URL || 'http://localhost:3000/api/v1';
   const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -9,12 +18,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'MyApp',
-    slug: 'my-app',
+    name: '집값노트',
+    slug: 'jipgapnote',
     version: APP_VERSION,
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
-    scheme: 'myapp',
+    scheme: 'jipgapnote',
     icon: './assets/images/icon.png',
     splash: {
       image: './assets/images/splash-icon.png',
@@ -29,24 +38,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: false,
       // RN Firebase + AdMob 호환성 (Expo issue #39607). 신규 앱은 jsc 유지 권장.
       jsEngine: 'jsc',
-      bundleIdentifier: 'com.myapp.app',
+      bundleIdentifier: 'com.jipgapnote.app',
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ??
         './firebase/GoogleService-Info.plist',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSAppTransportSecurity: {
-          NSAllowsArbitraryLoads: true,
-          NSAllowsLocalNetworking: true,
-        },
+        // MOLIT 공공 API(apis.data.go.kr)는 HTTPS이므로 ATS 예외가 필요 없다.
+        // NSAllowsArbitraryLoads 전면 해제는 App Store 심사 리스크 + 보안 위반.
         // Required for App Tracking Transparency (ATT) prompt on iOS 14.5+.
-        // Customize the wording per app — Apple reviews this string.
-        NSUserTrackingUsageDescription:
-          'This identifier will be used to deliver personalized ads to you.',
+        NSUserTrackingUsageDescription: TRACKING_USAGE_DESCRIPTION,
+        // "내 주변 시세" (F-007) — optional 권한, 거부해도 전 기능 사용 가능
+        NSLocationWhenInUseUsageDescription: LOCATION_USAGE_DESCRIPTION,
       },
     },
     android: {
-      package: 'com.myapp.app',
+      package: 'com.jipgapnote.app',
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ?? './firebase/google-services.json',
       adaptiveIcon: {
@@ -62,22 +69,30 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           androidAppId: 'ca-app-pub-3940256099942544~3347511713',
           iosAppId: 'ca-app-pub-3940256099942544~1458002511',
-          userTrackingUsageDescription:
-            'This identifier will be used to deliver personalized ads to you.',
+          userTrackingUsageDescription: TRACKING_USAGE_DESCRIPTION,
         },
       ],
       // ATT prompt on iOS 14.5+ — required so AdMob can serve personalized ads.
       [
         'expo-tracking-transparency',
         {
-          userTrackingPermission:
-            'This identifier will be used to deliver personalized ads to you.',
+          userTrackingPermission: TRACKING_USAGE_DESCRIPTION,
         },
       ],
-      // Firebase Analytics — restores AdMob audience signals for higher eCPM.
+      // "내 주변 시세" 위치 권한 (F-007) — iOS 문구 + Android 권한 자동 주입
+      [
+        'expo-location',
+        {
+          locationWhenInUsePermission: LOCATION_USAGE_DESCRIPTION,
+          isAndroidBackgroundLocationEnabled: false,
+        },
+      ],
+      // Firebase Analytics/Crashlytics — KPI 수집(F-011) + AdMob audience signal.
       // Without this, ads default to non-personalized (NPA) and eCPM drops 3-5x.
       // Place GoogleService-Info.plist + google-services.json in ./firebase/.
+      // (콘솔 등록 절차: _workspace/implementation/firebase-manual.md)
       '@react-native-firebase/app',
+      '@react-native-firebase/crashlytics',
       [
         'expo-build-properties',
         {
@@ -89,20 +104,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             //   framework module" 에러 해결
             // - GoogleUtilities modular_headers → AdMob과의 공유 pod 호환성
             useFrameworks: 'static',
-            forceStaticLinking: ['RNFBApp', 'RNFBAnalytics'],
+            forceStaticLinking: ['RNFBApp', 'RNFBAnalytics', 'RNFBCrashlytics'],
             extraPods: [{ name: 'GoogleUtilities', modular_headers: true }],
           },
         },
       ],
+      // RNFB + RN 0.81 + New Architecture + static frameworks 빌드 패치 (CLAUDE.md MANDATORY)
+      './plugins/withRNFirebaseStaticBuild',
       'expo-router',
-      'expo-secure-store',
       // Localized app name — shown on home screen matching store listing
       // Add/remove languages as needed. Keys are locale codes.
       ['./plugins/withLocalizedAppName', {
-        en: 'MyApp',
-        ko: '마이앱',
-        ja: 'マイアプリ',
-        'zh-Hans': '我的应用',
+        ko: '집값노트',
       }],
     ],
     experiments: {

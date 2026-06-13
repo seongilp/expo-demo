@@ -1,6 +1,6 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Colors, Typography, Spacing, BorderRadius } from '@shared/config';
+import { lightTokens } from '@/shared/config';
 
 interface IErrorBoundaryProps {
   children: ReactNode;
@@ -56,30 +56,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.primary,
-    padding: Spacing['3xl'],
+    backgroundColor: lightTokens.background,
+    padding: 32,
   },
   title: {
-    fontSize: Typography.fontSizes.xl,
-    fontWeight: Typography.fontWeights.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
+    fontSize: 20,
+    fontWeight: '700',
+    color: lightTokens.textPrimary,
+    marginBottom: 12,
   },
   message: {
-    fontSize: Typography.fontSizes.base,
-    color: Colors.text.secondary,
+    fontSize: 15,
+    color: lightTokens.textSecondary,
     textAlign: 'center',
-    marginBottom: Spacing['2xl'],
+    marginBottom: 24,
   },
   button: {
-    backgroundColor: Colors.primary.DEFAULT,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    backgroundColor: lightTokens.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   buttonText: {
-    fontSize: Typography.fontSizes.base,
-    fontWeight: Typography.fontWeights.semibold,
-    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+    color: lightTokens.textInverse,
   },
 });

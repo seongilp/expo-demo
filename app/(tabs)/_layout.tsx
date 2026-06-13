@@ -1,6 +1,8 @@
+// 하단 탭 3개 — 홈/검색/설정 (01-foundation). 탭 전환 햅틱 selection (F-013).
+// 탭바: surface 배경 + hairline 보더, 활성 primary / 비활성 faint (screen-layouts.md §0).
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@shared/config';
+import { useThemeTokens, haptics } from '@/shared/lib';
 
 type TIoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -15,38 +17,47 @@ function TabIcon({ name, color, size }: ITabIconProps): React.JSX.Element {
 }
 
 export default function TabLayout(): React.JSX.Element {
+  const { tokens } = useThemeTokens();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary.DEFAULT,
-        tabBarInactiveTintColor: Colors.text.muted,
+        tabBarActiveTintColor: tokens.primary,
+        tabBarInactiveTintColor: tokens.textTertiary,
         tabBarStyle: {
-          backgroundColor: Colors.background.secondary,
-          borderTopColor: Colors.surface.glassBorder,
+          backgroundColor: tokens.surface,
+          borderTopColor: tokens.line,
           borderTopWidth: 1,
+        },
+      }}
+      screenListeners={{
+        tabPress: () => {
+          haptics.selection();
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: '홈',
           tabBarIcon: ({ color, size }) => <TabIcon name="home" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="search"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color, size }) => <TabIcon name="compass" color={color} size={size} />,
+          title: '검색',
+          tabBarIcon: ({ color, size }) => <TabIcon name="search" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => <TabIcon name="person" color={color} size={size} />,
+          title: '설정',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="settings-outline" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

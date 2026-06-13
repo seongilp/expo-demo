@@ -1,2 +1,1 @@
-export { useAdStore } from './ad.store';
-export { usePremiumStore } from './premium.store';
+export { useAdGuardStore } from './ad-guard.store';

@@ -1,23 +1,17 @@
+// TanStack Query Provider — AsyncStorage persist 연동 (02-data-layer).
+// QueryClient/persister 정의는 src/shared/api/query/query-client.ts 단일 소스.
 import React, { ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
-});
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, persistOptions } from '@/shared/api';
 
 interface IQueryProviderProps {
   children: ReactNode;
 }
 
 export function QueryProvider({ children }: IQueryProviderProps): React.JSX.Element {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+      {children}
+    </PersistQueryClientProvider>
+  );
 }

@@ -1,0 +1,114 @@
+// 공동주택 단지 목록 수집 → 단지 JSON 번들 생성.
+//
+// 소스: 공공데이터포털 "국토교통부_공동주택 단지 목록제공 서비스" (data.go.kr 15057332)
+// 사용법:
+//   MOLIT_API_KEY=<serviceKey> npx tsx scripts/build-apt-list.ts [출력경로]
+//
+// 출력 스키마: { lawdCd: string(5), aptNm: string, builtYear: number | null }[]
+// 용량이 커지면 시도별 분할(scripts/data/apt-list-{sido}.json)을 검토한다 (fsd-module-map §5).
+import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+interface IAptRow {
+  lawdCd: string;
+  aptNm: string;
+  builtYear: number | null;
+}
+
+interface ITotalAptListItem {
+  kaptCode?: string;
+  kaptName?: string;
+  bjdCode?: string | number;
+}
+
+interface ITotalAptListResponse {
+  response?: {
+    header?: { resultCode?: string; resultMsg?: string };
+    body?: {
+      items?: { item?: ITotalAptListItem | ITotalAptListItem[] };
+      totalCount?: number;
+    };
+  };
+}
+
+const BASE_URL = 'https://apis.data.go.kr/1613000/AptListService3/getTotaAptList3';
+const PAGE_SIZE = 1000;
+const DEFAULT_OUTPUT = path.resolve(__dirname, '../src/entities/apartment/data/apt-list.json');
+
+const getServiceKey = (): string => {
+  const key = process.env.MOLIT_API_KEY;
+  if (!key) {
+    throw new Error('MOLIT_API_KEY 환경변수가 필요합니다 (data.go.kr serviceKey).');
+  }
+  return key;
+};
+
+const fetchPage = async (serviceKey: string, pageNo: number): Promise<ITotalAptListResponse> => {
+  const url = new URL(BASE_URL);
+  url.searchParams.set('serviceKey', serviceKey);
+  url.searchParams.set('pageNo', String(pageNo));
+  url.searchParams.set('numOfRows', String(PAGE_SIZE));
+  url.searchParams.set('_type', 'json');
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`API 응답 오류: HTTP ${response.status} (page ${pageNo})`);
+  }
+  return (await response.json()) as ITotalAptListResponse;
+};
+
+const toRows = (items: ITotalAptListItem[]): IAptRow[] =>
+  items.reduce<IAptRow[]>((acc, item) => {
+    const aptNm = item.kaptName?.trim();
+    const bjdCode = String(item.bjdCode ?? '').trim();
+    if (!aptNm || !/^\d{10}$/.test(bjdCode)) return acc;
+    return [...acc, { lawdCd: bjdCode.slice(0, 5), aptNm, builtYear: null }];
+  }, []);
+
+const main = async (): Promise<void> => {
+  const outputPath = process.argv[2] ?? DEFAULT_OUTPUT;
+  const serviceKey = getServiceKey();
+
+  const collected: IAptRow[] = [];
+  let pageNo = 1;
+  let totalCount = Number.POSITIVE_INFINITY;
+
+  while ((pageNo - 1) * PAGE_SIZE < totalCount) {
+    const data = await fetchPage(serviceKey, pageNo);
+    const header = data.response?.header;
+    if (header?.resultCode && header.resultCode !== '00') {
+      throw new Error(`API 오류 (${header.resultCode}): ${header.resultMsg ?? 'unknown'}`);
+    }
+
+    const body = data.response?.body;
+    totalCount = body?.totalCount ?? 0;
+    const rawItems = body?.items?.item;
+    const items = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
+    collected.push(...toRows(items));
+
+    console.log(`  page ${pageNo}: 누적 ${collected.length}/${totalCount}`);
+    pageNo += 1;
+  }
+
+  // lawdCd + 단지명 기준 중복 제거
+  const deduped = Array.from(
+    new Map(collected.map((row) => [`${row.lawdCd}:${row.aptNm}`, row])).values(),
+  ).sort((a, b) => a.lawdCd.localeCompare(b.lawdCd) || a.aptNm.localeCompare(b.aptNm));
+
+  if (deduped.length === 0) {
+    throw new Error('수집된 단지가 없습니다. serviceKey/API 상태를 확인하세요.');
+  }
+
+  await writeFile(outputPath, `${JSON.stringify(deduped, null, 2)}\n`, 'utf-8');
+  console.log(`✔ ${deduped.length}개 단지 → ${outputPath}`);
+
+  const sizeMb = Buffer.byteLength(JSON.stringify(deduped)) / 1024 / 1024;
+  if (sizeMb > 2) {
+    console.warn(`⚠ 번들 크기 ${sizeMb.toFixed(1)}MB — 시도별 분할/지연 로드 검토 필요`);
+  }
+};
+
+main().catch((error: unknown) => {
+  console.error('빌드 실패:', error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});
