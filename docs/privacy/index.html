@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="index, follow" />
+<title>집값노트 개인정보처리방침</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5f6368;
+    --line: #e5e7eb;
+    --accent: #1a73e8;
+    --card: #f8f9fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --fg: #e8eaed;
+      --muted: #9aa0a6;
+      --line: #2a2c30;
+      --accent: #8ab4f8;
+      --card: #16181c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+      "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    line-height: 1.7;
+    font-size: 16px;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 64px;
+  }
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  h2 {
+    font-size: 1.2rem;
+    margin: 36px 0 12px;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 1.02rem;
+    margin: 22px 0 8px;
+  }
+  p { margin: 0 0 14px; }
+  ul { margin: 0 0 14px; padding-left: 20px; }
+  li { margin: 0 0 8px; }
+  a { color: var(--accent); text-decoration: none; word-break: break-all; }
+  a:hover { text-decoration: underline; }
+  .lead {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-size: 0.95rem;
+  }
+  .lead strong { color: var(--fg); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 0.9rem;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--card); font-weight: 600; }
+  .note {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  code {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1px 6px;
+    font-size: 0.85em;
+  }
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>집값노트 개인정보처리방침</h1>
+    <p class="meta">시행일: 2026년 6월 13일</p>
+  </header>
+
+  <p class="lead">
+    <strong>집값노트</strong>는 국토교통부 공공데이터(아파트 실거래가)를 조회하는 앱입니다.
+    회원가입이 없으며(게스트 전용), 이름·이메일·전화번호 등 개인을 식별할 수 있는 정보를
+    수집하거나 저희 서버로 전송하지 않습니다. 본 방침은 앱이 어떤 정보를 어떻게 다루는지를
+    투명하게 안내합니다.
+  </p>
+
+  <h2>1. 수집하지 않는 정보</h2>
+  <p>
+    집값노트는 별도의 서버를 운영하지 않으며, 다음 정보를 <strong>수집·요구·저장하지 않습니다.</strong>
+  </p>
+  <ul>
+    <li>계정 정보(이메일, 비밀번호, 소셜 로그인) — 로그인 기능 자체가 없습니다.</li>
+    <li>이름, 전화번호, 생년월일 등 개인 식별 정보(PII)</li>
+    <li>연락처, 사진, 카메라, 마이크 등 기기 콘텐츠</li>
+    <li>정확한 위치 좌표의 저장 또는 서버 전송(아래 3항 참조)</li>
+  </ul>
+
+  <h2>2. 기기 내부에만 저장되는 정보</h2>
+  <p>
+    아래 정보는 <strong>이용자 기기 내부 저장소(AsyncStorage)에만</strong> 저장되며,
+    외부로 전송되지 않습니다. 앱 삭제 시 함께 삭제됩니다.
+  </p>
+  <table>
+    <thead>
+      <tr><th>항목</th><th>목적</th><th>저장 위치</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>관심 단지 목록</td><td>홈 화면에서 자주 보는 단지 재조회</td><td>기기 로컬</td></tr>
+      <tr><td>최근 검색 기록</td><td>최근 조회한 지역·단지 빠른 재검색</td><td>기기 로컬</td></tr>
+      <tr><td>테마 설정(라이트/다크)</td><td>화면 표시 환경 기억</td><td>기기 로컬</td></tr>
+    </tbody>
+  </table>
+  <p class="note">
+    위 정보는 개인을 식별하지 않는 이용 편의 설정값이며, 광고·분석 목적의 프로파일링에
+    사용되지 않습니다.
+  </p>
+
+  <h2>3. 위치 정보(선택)</h2>
+  <p>
+    "내 주변 시세" 기능을 사용할 때에 한해 위치 권한을 요청합니다. 이 권한은 <strong>선택 사항</strong>이며,
+    거부하더라도 지역·단지 검색으로 앱의 모든 기능을 동일하게 이용할 수 있습니다.
+  </p>
+  <ul>
+    <li>위치 권한을 허용하면, 현재 좌표를 <strong>기기 내부에서</strong> 행정구역(법정동/시군구)으로 변환하는 데에만 사용합니다.</li>
+    <li>변환이 끝나는 즉시 좌표는 <strong>메모리에서 폐기</strong>되며, 저장·전송·로깅하지 않습니다.</li>
+    <li>정확한 위치 좌표는 어떠한 경우에도 저희나 제3자에게 전송되지 않습니다.</li>
+  </ul>
+
+  <h2>4. 제3자 서비스</h2>
+  <p>
+    집값노트는 핵심 기능 제공과 운영을 위해 다음 외부 서비스를 사용합니다. 각 서비스의
+    개인정보 처리는 해당 사업자의 처리방침을 따릅니다.
+  </p>
+  <table>
+    <thead>
+      <tr><th>서비스</th><th>용도</th><th>처리되는 정보</th><th>처리방침</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>국토교통부 공공데이터포털</td>
+        <td>아파트 실거래가 조회</td>
+        <td>이용자가 선택한 지역코드·조회월 (개인정보 아님)</td>
+        <td><a href="https://www.data.go.kr/ugs/selectPortalPolicyView.do" target="_blank" rel="noopener">data.go.kr</a></td>
+      </tr>
+      <tr>
+        <td>Google AdMob</td>
+        <td>앱 내 배너 광고</td>
+        <td>광고 식별자, 동의 상태(UMP), 대략적 광고 노출 정보</td>
+        <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 개인정보처리방침</a></td>
+      </tr>
+      <tr>
+        <td>Google Firebase Analytics</td>
+        <td>익명 사용 통계(이용 화면·기능 빈도)</td>
+        <td>익명 앱 인스턴스 ID, 이벤트 로그(개인 식별 정보 미포함)</td>
+        <td><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase 개인정보 보호</a></td>
+      </tr>
+      <tr>
+        <td>Google Firebase Crashlytics</td>
+        <td>앱 충돌·오류 리포트(안정성 개선)</td>
+        <td>충돌 스택 트레이스, 기기·OS 종류 (개인 식별 정보 미포함)</td>
+        <td><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase 개인정보 보호</a></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note">
+    저희는 위 서비스에 이용자의 이름·이메일·전화번호·정확한 위치 등 개인 식별 정보를
+    전달하지 않습니다.
+  </p>
+
+  <h2>5. 광고 및 추적 동의</h2>
+  <p>
+    집값노트는 광고를 표시하기 위해 표준 동의 절차를 따릅니다.
+  </p>
+  <ul>
+    <li><strong>유럽 이용자(GDPR)</strong>: 앱 최초 실행 시 Google UMP 동의 양식이 표시되며, 맞춤형 광고 사용 여부를 직접 선택할 수 있습니다.</li>
+    <li><strong>iOS(14.5 이상)</strong>: 광고 식별자(IDFA) 사용을 위한 앱 추적 투명성(ATT) 권한을 요청합니다. 거부 시 비맞춤형 광고가 제공됩니다.</li>
+    <li>동의 설정은 언제든 앱 설정 화면 또는 기기 설정에서 변경할 수 있습니다.</li>
+  </ul>
+
+  <h2>6. 분석 수집 거부 방법</h2>
+  <p>
+    익명 사용 통계 및 광고 개인화는 기기 설정에서 직접 제한할 수 있습니다.
+  </p>
+  <ul>
+    <li><strong>iOS</strong>: 설정 → 개인정보 보호 및 보안 → 추적 → "앱이 추적을 요청하도록 허용" 끄기. 광고는 설정 → 개인정보 보호 및 보안 → Apple 광고에서 제한.</li>
+    <li><strong>Android</strong>: 설정 → Google → 광고 → "광고 개인 최적화 삭제/재설정"으로 광고 ID 초기화 또는 삭제.</li>
+    <li>iOS의 경우 ATT 권한 요청 시 "앱에 추적 금지"를 선택하면 광고 식별자 기반 추적이 차단됩니다.</li>
+  </ul>
+
+  <h2>7. 데이터 보관 및 삭제</h2>
+  <p>
+    기기 내부에 저장된 관심 단지·검색 기록·설정은 앱 설정 화면의 "캐시 초기화" 또는 앱 삭제로
+    언제든 제거할 수 있습니다. 저희가 보관하는 서버 측 개인정보는 없으므로 별도의 삭제 요청
+    절차가 필요하지 않습니다.
+  </p>
+
+  <h2>8. 아동의 개인정보</h2>
+  <p>
+    집값노트는 만 14세 미만 아동을 대상으로 하지 않으며, 아동의 개인정보를 의도적으로
+    수집하지 않습니다. 본 앱은 부동산 실거래가 정보 제공을 목적으로 하는 일반 이용자용
+    서비스입니다.
+  </p>
+
+  <h2>9. 개인정보처리방침 변경</h2>
+  <p>
+    법령 또는 서비스 변경에 따라 본 방침이 개정될 수 있습니다. 중요한 변경이 있는 경우
+    앱 또는 본 페이지를 통해 공지하며, 개정된 방침은 본 페이지 게시 시점부터 적용됩니다.
+  </p>
+
+  <h2>10. 문의</h2>
+  <p>
+    개인정보 처리에 관한 문의는 아래 이메일로 연락해 주시기 바랍니다.
+  </p>
+  <ul>
+    <li>이메일: <a href="mailto:[YOUR_EMAIL]">[YOUR_EMAIL]</a></li>
+  </ul>
+
+  <footer>
+    집값노트(com.jipgapnote.app) · 시행일 2026년 6월 13일<br />
+    본 앱이 제공하는 실거래가 정보의 출처는 국토교통부이며, 신고 기한(계약 후 30일) 및
+    신고 지연·해제 거래로 인해 최신 데이터가 일부 누락될 수 있습니다.
+  </footer>
+</div>
+</body>
+</html>

@@ -64,3 +64,6 @@ fastlane/report.xml
 
 # Build output
 build-output/
+
+# Bundle data pipeline — raw downloads (intermediate; regenerated via scripts/README.md)
+scripts/data/

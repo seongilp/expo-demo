@@ -1,9 +1,23 @@
 // 법정동코드 전체자료 → 시군구(앞 5자리) JSON 번들 생성.
 //
+// 데이터 출처 (API 키 불필요, 공개 파일 다운로드):
+//   공공데이터포털 "국토교통부_법정동코드" (data.go.kr/data/15123287/fileData.do)
+//   - 기준일자: 2025-08-05 / 형식: CSV(콤마 구분) / 인코딩: EUC-KR / 49,861행
+//   - 직접 다운로드(로그인 불필요):
+//       curl -L -A "Mozilla/5.0" \
+//         "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003205363&fileDetailSn=1&insertDataPrcus=N" \
+//         -o scripts/data/molit-lawd.bin
+//       iconv -f euc-kr -t utf-8 scripts/data/molit-lawd.bin > scripts/data/lawd-codes-raw.csv
+//   (atchFileId는 갱신주기[연1회]마다 바뀔 수 있다. 바뀌면 위 fileData.do 페이지 HTML에서
+//    `atchFileId=FILE_...` 값을 다시 확인한다.)
+//   대안: code.go.kr > 법정동코드 전체자료(EUC-KR txt, 탭 구분)도 동일 스키마로 사용 가능.
+//
 // 사용법:
-//   1. code.go.kr > 법정동코드 전체자료 다운로드 (EUC-KR txt)
-//   2. iconv -f euc-kr -t utf-8 법정동코드전체자료.txt > scripts/data/lawd-codes-raw.txt
-//   3. npx tsx scripts/build-lawd-codes.ts [입력경로] [출력경로]
+//   npx tsx scripts/build-lawd-codes.ts [입력경로] [출력경로]
+//   (기본 입력: scripts/data/lawd-codes-raw.csv)
+//
+// 입력은 콤마(CSV) 또는 탭(TSV) 구분 모두 허용한다 — 컬럼: 법정동코드, 법정동명, 폐지여부.
+// 폐지(말소) 코드는 제외하고 "존재"만 추출하며, 읍면동 10자리를 시군구 5자리로 dedupe 한다.
 //
 // 좌표(lat/lng)는 원본 자료에 없으므로 기존 번들의 수동 좌표를 보존 병합한다.
 // 신규 시군구는 좌표 0으로 생성되며 경고 출력 — 수동 보정 후 커밋한다.
@@ -18,15 +32,21 @@ interface IRegionRow {
   lng: number;
 }
 
-const DEFAULT_INPUT = path.resolve(__dirname, 'data/lawd-codes-raw.txt');
+const DEFAULT_INPUT = path.resolve(__dirname, 'data/lawd-codes-raw.csv');
 const DEFAULT_OUTPUT = path.resolve(__dirname, '../src/entities/region/data/lawd-codes.json');
 
 /** 법정동코드 10자리 중 시군구 레벨(끝 5자리가 0, 시도 레벨 제외)만 추출 */
 const isSigunguLevel = (code: string): boolean =>
   /^\d{10}$/.test(code) && code.endsWith('00000') && !code.endsWith('00000000');
 
+/** 한 행을 [코드, 명칭, 폐지여부] 3컬럼으로 분리 — 탭(TSV) 또는 콤마(CSV) 구분 모두 지원. */
+const splitColumns = (line: string): string[] => {
+  const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+  return parts.map((part) => part?.trim() ?? '');
+};
+
 const parseRawLine = (line: string): { lawdCd: string; fullName: string } | null => {
-  const [code, name, status] = line.split('\t').map((part) => part?.trim() ?? '');
+  const [code, name, status] = splitColumns(line);
   if (!code || !name || status !== '존재') return null;
   if (!isSigunguLevel(code)) return null;
   return { lawdCd: code.slice(0, 5), fullName: name };
